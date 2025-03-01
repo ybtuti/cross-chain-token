@@ -109,13 +109,13 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         return super.transfer(_recipient, _amount);
     }
 
-    /*
-    * @notice Transfer tokens from one user to another
-    * @param _sender The user address to transfer the tokens from
-    * @param _recipient The user address to transfer the tokens to
-    * @param _amount The amount of tokens to transfer
-    * @return True if the transfer was successful
-    */
+    /**
+     * @notice Transfer tokens from one user to another
+     * @param _sender The user address to transfer the tokens from
+     * @param _recipient The user address to transfer the tokens to
+     * @param _amount The amount of tokens to transfer
+     * @return True if the transfer was successful
+     */
     function transferFrom(address _sender, address _recipient, uint256 _amount) public override returns (bool) {
         _mintAccruedInterest(_sender);
         _mintAccruedInterest(_recipient);
