@@ -20,6 +20,7 @@ import {IRebaseToken} from "src/interfaces/IRebaseToken.sol";
 contract CrossChainTest is Test {
     address owner = makeAddr("owner");
     address user = makeAddr("user");
+    uint256 SEND_VALUE = 1e5;
     uint256 sepoliaFork;
     uint256 arbSepoliaFork;
 
@@ -83,6 +84,7 @@ contract CrossChainTest is Test {
         TokenAdminRegistry(arbSepoliaNetworkDetails.tokenAdminRegistryAddress).setPool(
             address(arbSepoliaToken), address(arbSepoliaTokenPool)
         );
+        vm.stopPrank();
         configureTokenPool(
             sepoliaFork,
             address(sepoliaTokenPool),
@@ -97,8 +99,6 @@ contract CrossChainTest is Test {
             address(sepoliaTokenPool),
             address(sepoliaToken)
         );
-
-        vm.stopPrank();
     }
 
     function configureTokenPool(
@@ -158,7 +158,7 @@ contract CrossChainTest is Test {
             data: "",
             tokenAmounts: tokenAmounts,
             feeToken: localNetworkDetails.linkAddress,
-            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 0}))
+            extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 500_000}))
         });
         {
             uint256 fee =
@@ -186,5 +186,33 @@ contract CrossChainTest is Test {
             uint256 remoteUserInterestRate = remoteToken.getUserInterestRate(user);
             assertEq(remoteUserInterestRate, localUserInterestRate);
         }
+    }
+
+    function testBridgeAllTokens() public {
+        vm.selectFork(sepoliaFork);
+        vm.deal(user, SEND_VALUE);
+        vm.prank(user);
+        Vault(payable(address(vault))).deposit{value: SEND_VALUE}();
+        assertEq(sepoliaToken.balanceOf(user), SEND_VALUE);
+        bridgeTokens(
+            SEND_VALUE,
+            sepoliaFork,
+            arbSepoliaFork,
+            sepoliaNetworkDetails,
+            arbSepoliaNetworkDetails,
+            sepoliaToken,
+            arbSepoliaToken
+        );
+        vm.selectFork(arbSepoliaFork);
+        vm.warp(block.timestamp + 20 minutes);
+        bridgeTokens(
+            arbSepoliaToken.balanceOf(user),
+            arbSepoliaFork,
+            sepoliaFork,
+            arbSepoliaNetworkDetails,
+            sepoliaNetworkDetails,
+            arbSepoliaToken,
+            sepoliaToken
+        );
     }
 }
